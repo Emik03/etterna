@@ -40,8 +40,8 @@ public class Etterna : MonoBehaviour
         while (_cycle < 32)
         {
             //play metronome
-            if 
-                (_cycle == 0) Audio.PlaySoundAtTransform("high", Module.transform);
+            if (_cycle == 0)
+                Audio.PlaySoundAtTransform("high", Module.transform);
 
             else
                 Audio.PlaySoundAtTransform("low", Module.transform);
@@ -135,13 +135,14 @@ public class Etterna : MonoBehaviour
         //failsafe
         for (int i = 0; i < _correct.Length; i++)
             //if outside ranges 1-32 or not sorted, discard module
-            if (!IsValid(_correct[i].ToString()) && _correct[i] > _correct[Mathf.Clamp(i + 1, 0, 3)])
+            if (!IsValid(_correct[i].ToString()) || _correct[i] > _correct[Mathf.Clamp(i + 1, 0, 3)])
             {
                 Text.text = "There was an unexpected error, please view the logfile!";
                 Debug.LogFormat("[Etterna #{0}] I am abandoning myself because I detected an unexpected value in correct[{1}] ({2}), please send this log to Emik! (@Emik#0001)", _moduleId, i, _correct[i]);
-                for (int j = 0; j < Arrow.Length; j++)
-                    Debug.LogFormat("[Etterna #{0}] Arrow {1}'s position: {2}", _moduleId, j, Arrow[j].transform.position.z);
-                Solve();
+                Debug.LogFormat("[Etterna #{0}] Detected error in {1}", _moduleId, Info.GetFormattedTime());
+
+                StartCoroutine("Solve");
+                break;
             }
     }
 
@@ -203,17 +204,19 @@ public class Etterna : MonoBehaviour
     /// <summary>
     /// Solves the module.
     /// </summary>
-    private void Solve()
+    private IEnumerator Solve()
     {
         //solved!
         Playfield.material = PlayfieldMat[Mathf.Clamp(Info.GetStrikes(), 0, PlayfieldMat.Length - 1)];
         Audio.PlaySoundAtTransform("solve", Module.transform);
-        Module.HandlePass();
         _cycle = 33;
         _isSolved = true;
 
         for (int i = 0; i < Arrow.Length; i++)
-            Arrow[i].gameObject.transform.localScale = new Vector3(0, 0, 0);
+        Arrow[i].gameObject.transform.localScale = new Vector3(0, 0, 0);
+
+        yield return new WaitForSeconds(0.02f);
+        Module.HandlePass();
     }
 
     /// <summary>
@@ -227,8 +230,9 @@ public class Etterna : MonoBehaviour
             Text.text = "Calibration failed! (Expected 4 inputs, recieved " + _input.Count + ".)";
             Debug.LogFormat("[Etterna #{0}] Strike! Too many inputs, expected 4, recieved {1}", _moduleId, _input.Count);
             Audio.PlaySoundAtTransform("strike", Module.transform);
-            Module.HandleStrike();
             _cycle = 0;
+
+            Module.HandleStrike();
             return;
         }
 
@@ -239,15 +243,16 @@ public class Etterna : MonoBehaviour
                 Text.text = "Calibration failed! (Button press #" + (i + 1) + " was incorrect.)";
                 Debug.LogFormat("[Etterna #{0}] Strike! Button press #{1} was incorrect, expected {2}, recieved {3}.", _moduleId, i + 1, _correct[i], _input[i]);
                 Audio.PlaySoundAtTransform("strike", Module.transform);
-                Module.HandleStrike();
                 _cycle = 0;
+
+                Module.HandleStrike();
                 return;
             }
 
         //if the method gets here, solve the module
         Text.text = "Calibration succeeded!";
         Debug.LogFormat("[Etterna #{0}] Sequence was correct! Module solved!", _moduleId);
-        Solve();
+        StartCoroutine("Solve");
     }
 
     /// <summary>
@@ -271,30 +276,31 @@ public class Etterna : MonoBehaviour
             z.Remove(rng);
         }
 
+        bool validArrow;
         byte index = 0, min = 0;
         //gets random indexes
         for (int i = 0; i < Arrow.Length; i++)
         {
-            bool validArrow = false;
+            validArrow = false;
             //tries to generate number, if linear search succeeds then stop
             do
             {
                 index = (byte)Random.Range(0, 8);
-                for (int j = min + Mathf.Clamp(i, 0, 1); j < _colors.Length; j++)
+                for (int j = min; j < _colors.Length; j++)
                     if (_colors[j] == index)
                     {
-                        min = (byte)j;
+                        min = (byte)(j + 1);
                         validArrow = true;
                         break;
                     }
             } while (!validArrow);
 
             //sets next index
-            _color[i] = _colors[index];
+            _color[i] = index;
         }
 
         //logging
-        string[] colorString = new string[8] { "Red", "Blue", "Green", "Yellow", "Magenta", "Orange", "Cyan", "Gray" };
+        string[] colorString = new string[8] { "Red", "Blue", "Green", "Yellow", "Pink", "Orange", "Cyan", "Gray" };
         Debug.LogFormat("[Etterna #{0}] The colors are: {1}, {2}, {3}, and {4}", _moduleId, colorString[_color[0]], colorString[_color[1]], colorString[_color[2]], colorString[_color[3]]);
 
         //assign each color according to the positions, basically SelectionSort
@@ -303,13 +309,8 @@ public class Etterna : MonoBehaviour
             byte biggerThan = 0;
 
             for (int j = 0; j < Arrow.Length; j++)
-            {
-                if (i == j)
-                    continue;
-
                 if (Arrow[i].transform.position.z > Arrow[j].transform.position.z)
                     biggerThan++;
-            }
 
             Arrow[i].material = ArrowMat[_color[biggerThan]];
         }
@@ -362,14 +363,14 @@ public class Etterna : MonoBehaviour
 
             //if command has an invalid parameter
             if (!IsValid(buttonPress.ElementAt(1)) || !IsValid(buttonPress.ElementAt(2)) || !IsValid(buttonPress.ElementAt(3)) || !IsValid(buttonPress.ElementAt(4)))
-                yield return "sendtochaterror Invalid number! Only numbers 0-32 can be used for all button presses.";
+                yield return "sendtochaterror Invalid number! Only numbers 1-32 can be used for all button presses.";
 
             //if command is valid, push button accordingly
             else
             {
                 //press screen to start the sequence
                 Button.OnInteract();
-                yield return new WaitForSeconds(0.444f * 4);
+                yield return new WaitForSeconds(0.444f * 3.5f);
 
                 byte[] seq = new byte[4];
                     
@@ -395,9 +396,9 @@ public class Etterna : MonoBehaviour
     IEnumerator TwitchHandleForcedSolve()
     {
         //pushes the screen once, waits until anacrusis is complete
-        yield return null;
+        Debug.LogFormat("Activating AutoSolver...");
         Button.OnInteract();
-        yield return new WaitForSeconds(0.444f * 4);
+        yield return new WaitForSeconds(0.444f * 3.5f);
 
         byte[] seq = new byte[4];
 
