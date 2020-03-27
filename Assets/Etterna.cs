@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Text;
 
 public class Etterna : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class Etterna : MonoBehaviour
     private int _moduleId = 0;
     private float _cycle = 0;
     private readonly List<byte> _input = new List<byte>(0);
+    private StringBuilder _builder = new StringBuilder();
 
     /// <summary>
     /// Update the bar at the top of the screen, handles easing.
@@ -67,7 +69,7 @@ public class Etterna : MonoBehaviour
             {
                 _started = false;
                 Calculate();
-                StopAllCoroutines();
+                yield break;
             }
 
             yield return new WaitForSeconds(0.444444f);
@@ -130,7 +132,7 @@ public class Etterna : MonoBehaviour
 
         //gets answer and logs it
         _correct = GetAnswer();
-        Debug.LogFormat("[Etterna #{0}] The expected sequence is: {1}, {2}, {3}, and {4}", _moduleId, _correct[0], _correct[1], _correct[2], _correct[3]);
+        Debug.LogFormat("[Etterna #{0}] The expected sequence is: {1}, {2}, {3}, and {4}.", _moduleId, _correct[0], _correct[1], _correct[2], _correct[3]);
 
         //failsafe
         for (int i = 0; i < _correct.Length; i++)
@@ -170,7 +172,7 @@ public class Etterna : MonoBehaviour
         }
 
         //add a clap sound and input log to '_input'
-        Debug.LogFormat("[Etterna #{0}] Detected input during beat {1}.", _moduleId, _cycle);
+        _builder.Append(_cycle + ", ");
         Audio.PlaySoundAtTransform("clap", Module.transform);
         _input.Add((byte)_cycle);
     }
@@ -224,11 +226,15 @@ public class Etterna : MonoBehaviour
     /// </summary>
     private void Calculate()
     {
+        //removes the last comma
+        _builder.Remove(_builder.Length - 2, 2);
+        Debug.LogFormat("[Etterna #{0}] Detected input during beats {1}.", _moduleId, _builder);
+
         //there should be 4 inputs
         if (_input.Count != 4)
         {
             Text.text = "Calibration failed! (Expected 4 inputs, recieved " + _input.Count + ".)";
-            Debug.LogFormat("[Etterna #{0}] Strike! Too many inputs, expected 4, recieved {1}", _moduleId, _input.Count);
+            Debug.LogFormat("[Etterna #{0}] Strike! Incorrect number of inputs, expected 4, recieved {1}.", _moduleId, _input.Count);
             Audio.PlaySoundAtTransform("strike", Module.transform);
             _cycle = 0;
 
@@ -300,16 +306,17 @@ public class Etterna : MonoBehaviour
         }
 
         //logging
+        byte biggerThan;
         string[] colorString = new string[8] { "Red", "Blue", "Green", "Yellow", "Pink", "Orange", "Cyan", "Gray" };
-        Debug.LogFormat("[Etterna #{0}] The colors are: {1}, {2}, {3}, and {4}", _moduleId, colorString[_color[0]], colorString[_color[1]], colorString[_color[2]], colorString[_color[3]]);
+        Debug.LogFormat("[Etterna #{0}] The colors are: {1}, {2}, {3}, and {4}.", _moduleId, colorString[_color[0]], colorString[_color[1]], colorString[_color[2]], colorString[_color[3]]);
 
         //assign each color according to the positions, basically SelectionSort
         for (int i = 0; i < Arrow.Length; i++)
         {
-            byte biggerThan = 0;
+            biggerThan = 0;
 
             for (int j = 0; j < Arrow.Length; j++)
-                if (Arrow[i].transform.position.z > Arrow[j].transform.position.z)
+                if (Arrow[i].transform.localPosition.z > Arrow[j].transform.localPosition.z)
                     biggerThan++;
 
             Arrow[i].material = ArrowMat[_color[biggerThan]];
@@ -361,8 +368,16 @@ public class Etterna : MonoBehaviour
         {
             yield return null;
 
+            //less than 4 numbers
+            if (buttonPress.Length < 5)
+                yield return "sendtochaterror Not enough inputs! Exactly 4 numbers must be registered!";
+
+            //more than 4 numbers
+            else if (buttonPress.Length > 5)
+                yield return "sendtochaterror Too many inputs! Exactly 4 numbers must be registered!";
+
             //if command has an invalid parameter
-            if (!IsValid(buttonPress.ElementAt(1)) || !IsValid(buttonPress.ElementAt(2)) || !IsValid(buttonPress.ElementAt(3)) || !IsValid(buttonPress.ElementAt(4)))
+            else if (!IsValid(buttonPress.ElementAt(1)) || !IsValid(buttonPress.ElementAt(2)) || !IsValid(buttonPress.ElementAt(3)) || !IsValid(buttonPress.ElementAt(4)))
                 yield return "sendtochaterror Invalid number! Only numbers 1-32 can be used for all button presses.";
 
             //if command is valid, push button accordingly
