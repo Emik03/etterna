@@ -167,6 +167,7 @@ public class Etterna : MonoBehaviour
         {
             StartCoroutine(UpdateDisplay());
             _input.Clear();
+            _builder = new StringBuilder();
             _started = true;
             return;
         }
