@@ -17,9 +17,11 @@ public class Etterna : MonoBehaviour
     public MeshRenderer Playfield;
     public Material[] ArrowMat, PlayfieldMat;
 
-    private bool _lightsOn = false, _started = false, _isSolved = false;
+    bool isSolved = false;
+    byte[] correct = new byte[4];
+
+    private bool _lightsOn = false, _started = false;
     private readonly byte[] _color = new byte[4];
-    private byte[] _correct = new byte[4];
     private static int _moduleIdCounter = 1;
     private int _moduleId = 0;
     private float _cycle = 0;
@@ -62,8 +64,7 @@ public class Etterna : MonoBehaviour
         {
             //increase the cycle every time this is run, and display the message
             _cycle++;
-            Text.text = "Calibrating... (" + _cycle + " / 32 beats recorded.)";
-
+            
             //finished cycle
             if (_cycle == 33)
             {
@@ -72,6 +73,7 @@ public class Etterna : MonoBehaviour
                 yield break;
             }
 
+            Text.text = "Calibrating... (" + _cycle + " / 32 beats recorded.)";
             yield return new WaitForSeconds(0.444444f);
         }
     }
@@ -131,16 +133,16 @@ public class Etterna : MonoBehaviour
         Generate();
 
         //gets answer and logs it
-        _correct = GetAnswer();
-        Debug.LogFormat("[Etterna #{0}] The expected sequence is: {1}, {2}, {3}, and {4}.", _moduleId, _correct[0], _correct[1], _correct[2], _correct[3]);
+        correct = GetAnswer();
+        Debug.LogFormat("[Etterna #{0}] The expected sequence is: {1}, {2}, {3}, and {4}.", _moduleId, correct[0], correct[1], correct[2], correct[3]);
 
         //failsafe
-        for (int i = 0; i < _correct.Length; i++)
+        for (int i = 0; i < correct.Length; i++)
             //if outside ranges 1-32 or not sorted, discard module
-            if (!IsValid(_correct[i].ToString()) || _correct[i] > _correct[Mathf.Clamp(i + 1, 0, 3)])
+            if (!IsValid(correct[i].ToString()) || correct[i] > correct[Mathf.Clamp(i + 1, 0, 3)])
             {
                 Text.text = "There was an unexpected error, please view the logfile!";
-                Debug.LogFormat("[Etterna #{0}] I am abandoning myself because I detected an unexpected value in correct[{1}] ({2}), please send this log to Emik! (@Emik#0001)", _moduleId, i, _correct[i]);
+                Debug.LogFormat("[Etterna #{0}] I am abandoning myself because I detected an unexpected value in correct[{1}] ({2}), please send this log to Emik! (@Emik#0001)", _moduleId, i, correct[i]);
                 Debug.LogFormat("[Etterna #{0}] Detected error in {1}", _moduleId, Info.GetFormattedTime());
 
                 StartCoroutine("Solve");
@@ -159,7 +161,7 @@ public class Etterna : MonoBehaviour
         Button.AddInteractionPunch();
 
         //lights off or is solved should end it here
-        if (!_lightsOn || _isSolved)
+        if (!_lightsOn || isSolved)
             return;
 
         //clear the input array and start the sequence
@@ -184,7 +186,7 @@ public class Etterna : MonoBehaviour
     /// <returns>The correct sequence that will solve this module.</returns>
     private byte[] GetAnswer()
     {
-        _correct = new byte[4];
+        correct = new byte[4];
         byte index = 0;
 
         //runs through the entire '_colors' array
@@ -193,7 +195,7 @@ public class Etterna : MonoBehaviour
             //if the color has been found, we know the answer to that arrow
             if (_color[index] == _colors[i])
             {
-                _correct[index] = (byte)(i + 1);
+                correct[index] = (byte)(i + 1);
                 index++;
             }
 
@@ -201,7 +203,7 @@ public class Etterna : MonoBehaviour
                 break;
         }
 
-        return _correct;
+        return correct;
     }
 
     /// <summary>
@@ -213,7 +215,7 @@ public class Etterna : MonoBehaviour
         Playfield.material = PlayfieldMat[Mathf.Clamp(Info.GetStrikes(), 0, PlayfieldMat.Length - 1)];
         Audio.PlaySoundAtTransform("solve", Module.transform);
         _cycle = 33;
-        _isSolved = true;
+        isSolved = true;
 
         for (int i = 0; i < Arrow.Length; i++)
         Arrow[i].gameObject.transform.localScale = new Vector3(0, 0, 0);
@@ -228,8 +230,14 @@ public class Etterna : MonoBehaviour
     private void Calculate()
     {
         //removes the last comma
-        _builder.Remove(_builder.Length - 2, 2);
-        Debug.LogFormat("[Etterna #{0}] Detected input during beats {1}.", _moduleId, _builder);
+        if (_builder.Length > 2)
+        {
+            _builder.Remove(_builder.Length - 2, 2);
+            Debug.LogFormat("[Etterna #{0}] Detected input during beats {1}.", _moduleId, _builder);
+        }
+
+        else
+            Debug.LogFormat("[Etterna #{0}] Detected no inputs at any beat.", _moduleId);
 
         //there should be 4 inputs
         if (_input.Count != 4)
@@ -244,11 +252,11 @@ public class Etterna : MonoBehaviour
         }
 
         //makes sure each input is correct
-        for (int i = 0; i < _correct.Length; i++)
-            if (_input[i] != _correct[i])
+        for (int i = 0; i < correct.Length; i++)
+            if (_input[i] != correct[i])
             {
                 Text.text = "Calibration failed! (Button press #" + (i + 1) + " was incorrect.)";
-                Debug.LogFormat("[Etterna #{0}] Strike! Button press #{1} was incorrect, expected {2}, recieved {3}.", _moduleId, i + 1, _correct[i], _input[i]);
+                Debug.LogFormat("[Etterna #{0}] Strike! Button press #{1} was incorrect, expected {2}, recieved {3}.", _moduleId, i + 1, correct[i], _input[i]);
                 Audio.PlaySoundAtTransform("strike", Module.transform);
                 _cycle = 0;
 
@@ -343,12 +351,8 @@ public class Etterna : MonoBehaviour
         if (!byte.TryParse(par, out b))
             return false;
 
-        //1-255
-        if (b == 0)
-            return false;
-
         //1-32
-        return b <= 32;
+        return b <= 32 && b != 0;
     }
 
 #pragma warning disable 414
@@ -386,21 +390,25 @@ public class Etterna : MonoBehaviour
             {
                 //press screen to start the sequence
                 Button.OnInteract();
-                yield return new WaitForSeconds(0.444f * 3.5f);
+                yield return new WaitForSeconds(1.57f);
 
                 byte[] seq = new byte[4];
+                byte i = 0;
                     
                 //press each button based on user input
-                for (int i = 0; i < 4; i++)
+                while (_cycle != 0)
                 {
+                    yield return new WaitForSeconds(0.05f);
                     byte.TryParse(buttonPress[i + 1], out seq[i]);
 
-                    for (int j = i - 1; j >= 0; j--)
-                        seq[i] -= seq[j];
+                    if (_cycle == seq[i])
+                    {
+                        i++;
+                        Button.OnInteract();
 
-                    //0.44f = 22 frames = 1 cycle
-                    yield return new WaitForSeconds(0.444f * seq[i]);
-                    Button.OnInteract();
+                        if (i == 4)
+                            break;
+                    }
                 }
             }
         }
@@ -414,21 +422,25 @@ public class Etterna : MonoBehaviour
         //pushes the screen once, waits until anacrusis is complete
         Debug.LogFormat("Activating AutoSolver...");
         Button.OnInteract();
-        yield return new WaitForSeconds(0.444f * 3.5f);
+        yield return new WaitForSeconds(1.57f);
 
         byte[] seq = new byte[4];
+        byte i = 0;
 
         //press each button based on the answer
-        for (int i = 0; i < 4; i++)
+        while (_cycle != 0)
         {
-            byte.TryParse(_correct[i].ToString(), out seq[i]);
+            yield return new WaitForSeconds(0.05f);
+            byte.TryParse(correct[i].ToString(), out seq[i]);
 
-            for (int j = i - 1; j >= 0; j--)
-                seq[i] -= seq[j];
+            if (_cycle == seq[i])
+            {
+                i++;
+                Button.OnInteract();
 
-            //0.44f = 22 frames = 1 cycle
-            yield return new WaitForSeconds(0.444f * seq[i]);
-            Button.OnInteract();
+                if (i == 4)
+                    break;
+            }
         }
     }
 }
