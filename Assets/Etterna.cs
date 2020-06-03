@@ -87,7 +87,7 @@ public class Etterna : MonoBehaviour
         _moduleId = _moduleIdCounter++;
 
         //before the module activates, all arrows should be invisible
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
             Arrow[i].transform.localScale = new Vector3(0, 0, 0);
     }
 
@@ -97,7 +97,7 @@ public class Etterna : MonoBehaviour
     void Activate()
     {
         //after the module activates, all arrows should be visible
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
         {
             //left and right
             if (i == 0 || i == 3)
@@ -137,7 +137,7 @@ public class Etterna : MonoBehaviour
         Debug.LogFormat("[Etterna #{0}] The expected sequence is: {1}, {2}, {3}, and {4}.", _moduleId, correct[0], correct[1], correct[2], correct[3]);
 
         //failsafe
-        for (int i = 0; i < correct.Length; i++)
+        for (byte i = 0; i < correct.Length; i++)
             //if outside ranges 1-32 or not sorted, discard module
             if (!IsValid(correct[i].ToString()) || correct[i] > correct[Mathf.Clamp(i + 1, 0, 3)])
             {
@@ -190,7 +190,7 @@ public class Etterna : MonoBehaviour
         byte index = 0;
 
         //runs through the entire '_colors' array
-        for (int i = 0; i < _colors.Length; i++)
+        for (byte i = 0; i < _colors.Length; i++)
         {
             //if the color has been found, we know the answer to that arrow
             if (_color[index] == _colors[i])
@@ -217,7 +217,7 @@ public class Etterna : MonoBehaviour
         _cycle = 33;
         isSolved = true;
 
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
         Arrow[i].gameObject.transform.localScale = new Vector3(0, 0, 0);
 
         yield return new WaitForSeconds(0.02f);
@@ -252,7 +252,7 @@ public class Etterna : MonoBehaviour
         }
 
         //makes sure each input is correct
-        for (int i = 0; i < correct.Length; i++)
+        for (byte i = 0; i < correct.Length; i++)
             if (_input[i] != correct[i])
             {
                 Text.text = "Calibration failed! (Button press #" + (i + 1) + " was incorrect.)";
@@ -277,7 +277,7 @@ public class Etterna : MonoBehaviour
     {
         //sets positions
         Dictionary<byte, float> z = new Dictionary<byte, float>(4) { { 0, 0.22f }, { 1, 0.1233333f }, { 2, 0.0266666f }, { 3, -0.07f } };
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
         {
             byte rng;
             float pos;
@@ -294,14 +294,14 @@ public class Etterna : MonoBehaviour
         bool validArrow;
         byte index = 0, min = 0;
         //gets random indexes
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
         {
             validArrow = false;
             //tries to generate number, if linear search succeeds then stop
             do
             {
                 index = (byte)Random.Range(0, 8);
-                for (int j = min; j < _colors.Length; j++)
+                for (byte j = min; j < _colors.Length; j++)
                     if (_colors[j] == index)
                     {
                         min = (byte)(j + 1);
@@ -320,11 +320,11 @@ public class Etterna : MonoBehaviour
         Debug.LogFormat("[Etterna #{0}] The colors are: {1}, {2}, {3}, and {4}.", _moduleId, colorString[_color[0]], colorString[_color[1]], colorString[_color[2]], colorString[_color[3]]);
 
         //assign each color according to the positions, basically SelectionSort
-        for (int i = 0; i < Arrow.Length; i++)
+        for (byte i = 0; i < Arrow.Length; i++)
         {
             biggerThan = 0;
 
-            for (int j = 0; j < Arrow.Length; j++)
+            for (byte j = 0; j < Arrow.Length; j++)
                 if (Arrow[i].transform.localPosition.z > Arrow[j].transform.localPosition.z)
                     biggerThan++;
 
@@ -388,27 +388,32 @@ public class Etterna : MonoBehaviour
             //if command is valid, push button accordingly
             else
             {
+                //returns whether it's a strike or solve early
+                for (byte i = 0; i < 4; i++)
+                {
+                    if (buttonPress[i + 1] != correct[i].ToString())
+                    {
+                        yield return "strike";
+                        break;
+                    }
+
+                    else if (i == 3)
+                        yield return "solve";
+                }
+
                 //press screen to start the sequence
                 Button.OnInteract();
-                yield return new WaitForSeconds(1.57f);
 
-                byte[] seq = new byte[4];
-                byte i = 0;
-                    
-                //press each button based on user input
-                while (_cycle != 0)
+                yield return new WaitWhile(() => _cycle == 0);
+
+                byte seq;
+
+                for (byte i = 0; i < 4; i++)
                 {
-                    yield return new WaitForSeconds(0.05f);
-                    byte.TryParse(buttonPress[i + 1], out seq[i]);
+                    byte.TryParse(buttonPress[i + 1], out seq);
+                    yield return new WaitWhile(() => _cycle != seq);
 
-                    if (_cycle == seq[i])
-                    {
-                        i++;
-                        Button.OnInteract();
-
-                        if (i == 4)
-                            break;
-                    }
+                    Button.OnInteract();
                 }
             }
         }
@@ -421,26 +426,21 @@ public class Etterna : MonoBehaviour
     {
         //pushes the screen once, waits until anacrusis is complete
         Debug.LogFormat("Activating AutoSolver...");
-        Button.OnInteract();
-        yield return new WaitForSeconds(1.57f);
 
-        byte[] seq = new byte[4];
-        byte i = 0;
+        //press screen to start the sequence
+        Button.OnInteract();
+
+        yield return new WaitWhile(() => _cycle == 0);
+
+        byte seq;
 
         //press each button based on the answer
-        while (_cycle != 0)
+        for (byte i = 0; i < 4; i++)
         {
-            yield return new WaitForSeconds(0.05f);
-            byte.TryParse(correct[i].ToString(), out seq[i]);
+            byte.TryParse(correct[i].ToString(), out seq);
+            yield return new WaitWhile(() => _cycle != seq);
 
-            if (_cycle == seq[i])
-            {
-                i++;
-                Button.OnInteract();
-
-                if (i == 4)
-                    break;
-            }
+            Button.OnInteract();
         }
     }
 }
