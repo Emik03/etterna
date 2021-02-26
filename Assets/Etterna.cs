@@ -445,7 +445,7 @@ public class Etterna : MonoBehaviour
             Button.OnInteract();
         }
 
-        if (!isSolved)
+        while (!isSolved)
             yield return true;
     }
 }
