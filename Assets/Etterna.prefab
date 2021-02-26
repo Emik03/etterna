@@ -444,7 +444,7 @@ Transform:
   m_GameObject: {fileID: 1856199207600012}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0.01, z: -0.005}
-  m_LocalScale: {x: 0.16, y: 0.02, z: 0.09}
+  m_LocalScale: {x: 0.16, y: 0.03, z: 0.09}
   m_Children:
   - {fileID: 4439000496347100}
   - {fileID: 4457904239001878}
@@ -1103,20 +1103,21 @@ MonoBehaviour:
   - {fileID: 23404934047300850}
   - {fileID: 23015861567789792}
   Playfield: {fileID: 23122834969382572}
-  ArrowMat:
-  - {fileID: 2100000, guid: 0c0b6440d0738de48991b4261fe4c595, type: 2}
-  - {fileID: 2100000, guid: 82927636705ad5543b33ef2b3331f99e, type: 2}
-  - {fileID: 2100000, guid: 06f5f48e9c56b264ea051ac7e5c0a455, type: 2}
-  - {fileID: 2100000, guid: 37bb8586478d1584e8b5f305c5eecd6a, type: 2}
-  - {fileID: 2100000, guid: 4c68bd11c04fe334d94d9549cfd761a0, type: 2}
-  - {fileID: 2100000, guid: 16df6aef9c337fe4dbdc348a6bcdee02, type: 2}
-  - {fileID: 2100000, guid: acbe2e40960719344ac58535976ff847, type: 2}
-  - {fileID: 2100000, guid: 5bc4c33af6ef16b41a9ce83eba351ee2, type: 2}
-  PlayfieldMat:
-  - {fileID: 2100000, guid: 42ceca564d91db24d9a558f2650fdfb1, type: 2}
-  - {fileID: 2100000, guid: d7e95163a8b711540a4b29514ecbfd05, type: 2}
-  - {fileID: 2100000, guid: aca7d403f2278bf439072998656b2429, type: 2}
-  - {fileID: 2100000, guid: 8bd4eefc3b0892a45949052f378680a1, type: 2}
+  ArrowTexture:
+  - {fileID: 2800000, guid: 5849cc3d069de894abefa867d83247e7, type: 3}
+  - {fileID: 2800000, guid: 92a9507e30b54d742a86a582baf0b5d2, type: 3}
+  - {fileID: 2800000, guid: 613b67dec8a171c4286e0cf1528b8144, type: 3}
+  - {fileID: 2800000, guid: 6e6ce061c74f554448548a669e86d495, type: 3}
+  - {fileID: 2800000, guid: 2c3cb4dc2425ada43a55d0543fdca2dc, type: 3}
+  - {fileID: 2800000, guid: 0df1f25dd872f0f448a8fdaa210294df, type: 3}
+  - {fileID: 2800000, guid: 6a89d810e8223be41a0143c3ba76a704, type: 3}
+  - {fileID: 2800000, guid: 4a8270afeffd3a24893a9162421b1ccb, type: 3}
+  PlayfieldTexture:
+  - {fileID: 2800000, guid: de81e3ac45b03ec4da21898ce699f5b3, type: 3}
+  - {fileID: 2800000, guid: de81e3ac45b03ec4da21898ce699f5b3, type: 3}
+  - {fileID: 2800000, guid: e69af21e3e40d5d41b9d29665b8866c7, type: 3}
+  - {fileID: 2800000, guid: 13a4a755669d74a409113405f0d4b2c1, type: 3}
+  - {fileID: 2800000, guid: 51fabc6dffea42e4ba25023b19446485, type: 3}
 --- !u!114 &114115408952530852
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1155,7 +1156,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114241295319001964
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1168,7 +1169,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114358193356919800
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1181,7 +1182,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114392062289319266
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1220,7 +1221,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114466871040107044
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1281,7 +1282,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114790402105966314
 MonoBehaviour:
   m_ObjectHideFlags: 1
@@ -1307,7 +1308,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ShaderNames:
-  - KT/Mobile/DiffuseTint
+  - KT/Mobile/Diffuse
 --- !u!114 &114877330223419208
 MonoBehaviour:
   m_ObjectHideFlags: 1

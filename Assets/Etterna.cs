@@ -13,9 +13,9 @@ public class Etterna : MonoBehaviour
     public KMSelectable Button;
     public TextMesh Text;
     public GameObject FilledControl;
-    public MeshRenderer[] Arrow;
-    public MeshRenderer Playfield;
-    public Material[] ArrowMat, PlayfieldMat;
+    public Renderer[] Arrow;
+    public Renderer Playfield;
+    public Texture[] ArrowTexture, PlayfieldTexture;
 
     bool isSolved = false;
     byte[] correct = new byte[4];
@@ -54,7 +54,7 @@ public class Etterna : MonoBehaviour
             _cycle += 8;
             Text.text = "Get ready to calibrate! (Anacrusis: " + (_cycle / 8) + " / 4 beats.)";
 
-            yield return new WaitForSeconds(0.444444f);
+            yield return new WaitForSecondsRealtime(0.444444444444f);
         }
 
         _cycle = 0;
@@ -74,7 +74,7 @@ public class Etterna : MonoBehaviour
             }
 
             Text.text = "Calibrating... (" + _cycle + " / 32 beats recorded.)";
-            yield return new WaitForSeconds(0.444444f);
+            yield return new WaitForSecondsRealtime(0.444444444444f);
         }
     }
 
@@ -212,7 +212,7 @@ public class Etterna : MonoBehaviour
     private IEnumerator Solve()
     {
         //solved!
-        Playfield.material = PlayfieldMat[Mathf.Clamp(Info.GetStrikes(), 0, PlayfieldMat.Length - 1)];
+        Playfield.material.mainTexture = PlayfieldTexture[Mathf.Clamp(Info.GetStrikes(), 0, PlayfieldTexture.Length - 1)];
         Audio.PlaySoundAtTransform("solve", Module.transform);
         _cycle = 33;
         isSolved = true;
@@ -220,7 +220,7 @@ public class Etterna : MonoBehaviour
         for (byte i = 0; i < Arrow.Length; i++)
         Arrow[i].gameObject.transform.localScale = new Vector3(0, 0, 0);
 
-        yield return new WaitForSeconds(0.02f);
+        yield return new WaitForSecondsRealtime(0.02f);
         Module.HandlePass();
     }
 
@@ -328,7 +328,7 @@ public class Etterna : MonoBehaviour
                 if (Arrow[i].transform.localPosition.z > Arrow[j].transform.localPosition.z)
                     biggerThan++;
 
-            Arrow[i].material = ArrowMat[_color[biggerThan]];
+            Arrow[i].material.mainTexture = ArrowTexture[_color[biggerThan]];
         }
     }
 
@@ -388,10 +388,15 @@ public class Etterna : MonoBehaviour
             //if command is valid, push button accordingly
             else
             {
+                byte[] seq = new byte[4];
+                for (int i = 0; i < 4; i++)
+                    byte.TryParse(buttonPress[i + 1], out seq[i]);
+                System.Array.Sort(seq);
+
                 //returns whether it's a strike or solve early
                 for (byte i = 0; i < 4; i++)
                 {
-                    if (buttonPress[i + 1] != correct[i].ToString())
+                    if (seq[i] != correct[i])
                     {
                         yield return "strike";
                         break;
@@ -406,12 +411,9 @@ public class Etterna : MonoBehaviour
 
                 yield return new WaitWhile(() => _cycle == 0);
 
-                byte seq;
-
                 for (byte i = 0; i < 4; i++)
                 {
-                    byte.TryParse(buttonPress[i + 1], out seq);
-                    yield return new WaitWhile(() => _cycle != seq);
+                    yield return new WaitWhile(() => _cycle != seq[i]);
 
                     Button.OnInteract();
                 }
@@ -442,5 +444,8 @@ public class Etterna : MonoBehaviour
 
             Button.OnInteract();
         }
+
+        if (!isSolved)
+            yield return true;
     }
 }
